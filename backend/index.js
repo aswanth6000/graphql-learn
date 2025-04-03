@@ -4,23 +4,41 @@ import { expressMiddleware } from "@apollo/server/express4";
 import cors from "cors";
 import axios from "axios";
 
-async function startServer() {
-  const app = express();
-  const server = new ApolloServer({
-    typeDefs:`
+const typeDefs = `
+    type User{
+    id: ID!
+    name: String!
+    email: String!
+    phone: String!
+    }
+
     type Todo{
     id: ID!
     title: String,
     completed: Boolean
+    user: User
+    userId: ID!
     }
 
     type Query{
     getTodos: [Todo]
+    getAllUsers: [User]
+    getUser(id: ID!): User
     }
-    `,
+`
+
+async function startServer() {
+  const app = express();
+  const server = new ApolloServer({
+    typeDefs,
     resolvers: {
+      Todo: {
+        user: async (toDo)=>  (await axios.get(`https://jsonplaceholder.typicode.com/users/${toDo.userId}`)).data,
+      },
         Query: {
-            getTodos: async ()=> (await axios.get("https://jsonplaceholder.typicode.com/todos")).data
+            getTodos: async ()=> (await axios.get("https://jsonplaceholder.typicode.com/todos")).data,
+            getAllUsers: async ()=> (await axios.get("https://jsonplaceholder.typicode.com/users")).data,
+            getUser: async (parent, {id})=> (await axios.get(`https://jsonplaceholder.typicode.com/users/${id}`)).data,
         }
     }
   });
